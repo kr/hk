@@ -10,21 +10,21 @@ import (
 )
 
 // IsTerminal returns true if f is a terminal.
-func IsTerminal(f *os.File) bool {
+func IsTerminal(fd int) bool {
 	cmd := exec.Command("test", "-t", "0")
-	cmd.Stdin = f
+	cmd.Stdin = os.NewFile(uintptr(fd), "")
 	return cmd.Run() == nil
 }
 
-func MakeRaw(f *os.File) error {
-	return stty(f, "-icanon", "-echo").Run()
+func MakeRaw(fd int) (uint32, error) {
+	return 0, stty(fd, "-icanon", "-echo").Run()
 }
 
-func Restore(f *os.File) error {
-	return stty(f, "icanon", "echo").Run()
+func Restore(fd int, mode uint32) error {
+	return stty(fd, "icanon", "echo").Run()
 }
 
-func Cols() (int, error) {
+func Cols(fd int) (int, error) {
 	cols, err := tput("cols")
 	if err != nil {
 		return 0, err
@@ -32,7 +32,7 @@ func Cols() (int, error) {
 	return strconv.Atoi(cols)
 }
 
-func Lines() (int, error) {
+func Lines(fd int) (int, error) {
 	cols, err := tput("lines")
 	if err != nil {
 		return 0, err
@@ -42,9 +42,9 @@ func Lines() (int, error) {
 
 // helpers
 
-func stty(f *os.File, args ...string) *exec.Cmd {
+func stty(fd int, args ...string) *exec.Cmd {
 	c := exec.Command("stty", args...)
-	c.Stdin = f
+	c.Stdin = os.NewFile(uintptr(fd), "")
 	return c
 }
 

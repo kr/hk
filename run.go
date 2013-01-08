@@ -31,11 +31,11 @@ func init() {
 }
 
 func runRun(cmd *Command, args []string) {
-	cols, err := term.Cols()
+	cols, err := term.Cols(syscall.Stdout)
 	if err != nil {
 		log.Fatal(err)
 	}
-	lines, err := term.Lines()
+	lines, err := term.Lines(syscall.Stdout)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -88,17 +88,17 @@ func runRun(cmd *Command, args []string) {
 		}
 	}
 
-	if term.IsTerminal(os.Stdin) && term.IsTerminal(os.Stdout) {
-		err = term.MakeRaw(os.Stdin)
+	if term.IsTerminal(syscall.Stdin) && term.IsTerminal(syscall.Stdout) {
+		oldState, err := term.MakeRaw(syscall.Stdin)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer term.Restore(os.Stdin)
+		defer term.Restore(syscall.Stdin, oldState)
 
 		sig := make(chan os.Signal)
 		signal.Notify(sig, os.Signal(syscall.SIGQUIT), os.Interrupt)
 		go func() {
-			defer term.Restore(os.Stdin)
+			defer term.Restore(syscall.Stdin, oldState)
 			for sg := range sig {
 				switch sg {
 				case os.Interrupt:
