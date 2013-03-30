@@ -24,6 +24,8 @@ type App struct {
 	Maintenance bool
 
 	BuildpackProvidedDescription *NullString `json:"buildpack_provided_description"`
+
+	attachments []*mergedAddon
 }
 
 type Dyno struct {

@@ -36,7 +36,7 @@ func runDestroy(cmd *Command, args []string) {
 		log.Println("For more on scaling: hk help scale")
 		os.Exit(1)
 	}
-	if res := getMergedAddons(name); len(res) > 0 {
+	if res := mustGetMergedAddons(name); len(res) > 0 {
 		log.Println("App", name, "has", len(res), "addons")
 		log.Println("To destroy this app, first remove its addons")
 		log.Println("To list them: hk ls -a", name, "addons")

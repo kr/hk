@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -13,7 +14,7 @@ import (
 
 var cmdLs = &Command{
 	Run:   runLs,
-	Usage: "ls [-l] [app...]",
+	Usage: "ls [-l] [-f] [app...]",
 	Short: "list apps, addons, dynos, and releases",
 	Long: `
        hk ls [-l] [-a app] releases [name...]
@@ -24,17 +25,22 @@ Command hk ls lists apps, releases, and addons.
 
 Options:
 
-    -l       long listing
-    -a=name  app name
+    -l
+        Long listing. For apps, shows the owner, slug size, last
+        release time (or time the app was created, if it's never
+        been released), and the app name. For releases, shows the
+        git commit id, who made the release, time of the release,
+        name of the release (e.g. v1), and description. For
+        addons, shows the type of the addon, owner, name of the
+        resource, and the config var it's attached to. For dynos,
+        shows the name, state, age, and command.
 
-Long listing for apps shows the owner, slug size, last release
-time (or time the app was created, if it's never been released),
-and the app name. Long listing for releases shows the git commit
-id, who made the release, time of the release, name of the release
-(e.g. v1), and description. Long listing for addons shows the type
-of the addon, owner, name of the resource, and the config var it's
-attached to. Long listing for dynos shows the name, state, age,
-and command.
+    -f
+        Follow attachments. After each app, list all addons that
+        are attached to it.
+
+    -a=name
+        App name.
 
 Examples:
 
@@ -80,6 +86,7 @@ Examples:
 func init() {
 	cmdLs.Flag.StringVar(&flagApp, "a", "", "app")
 	cmdLs.Flag.BoolVar(&flagLong, "l", false, "long listing")
+	cmdLs.Flag.BoolVar(&follow, "f", false, "follow attachments")
 }
 
 func runLs(cmd *Command, args []string) {
@@ -129,7 +136,10 @@ func listApps(w io.Writer, names []string) {
 
 func printAppList(w io.Writer, apps []*App) {
 	sort.Sort(appsByName(apps))
-	abbrevEmailApps(apps)
+	suf := abbrevEmailApps(apps)
+	if follow {
+		followAppAttachments(apps, suf)
+	}
 	for _, a := range apps {
 		if a.Name != "" {
 			listApp(w, a)
@@ -231,7 +241,7 @@ func abbrevEmailReleases(rels []*Release) {
 	}
 }
 
-func abbrevEmailApps(apps []*App) {
+func abbrevEmailApps(apps []*App) (maxSuf string) {
 	domains := make(map[string]int)
 	for _, a := range apps {
 		parts := strings.SplitN(a.Owner.Email, "@", 2)
@@ -251,26 +261,30 @@ func abbrevEmailApps(apps []*App) {
 			a.Owner.Email = a.Owner.Email[:len(a.Owner.Email)-len(smax)]
 		}
 	}
+	return smax
 }
 
-func abbrevEmailResources(ms []*mergedAddon) {
-	domains := make(map[string]int)
-	for _, m := range ms {
-		parts := strings.SplitN(m.Owner, "@", 2)
-		if len(parts) == 2 {
-			domains["@"+parts[1]]++
+func abbrevEmailResources(ms []*mergedAddon, suf string) {
+	if suf == "" {
+		domains := make(map[string]int)
+		for _, m := range ms {
+			parts := strings.SplitN(m.Owner, "@", 2)
+			if len(parts) == 2 {
+				domains["@"+parts[1]]++
+			}
 		}
-	}
-	smax, nmax := "", 0
-	for s, n := range domains {
-		if n > nmax {
-			smax = s
-			nmax = n
+		smax, nmax := "", 0
+		for s, n := range domains {
+			if n > nmax {
+				smax = s
+				nmax = n
+			}
 		}
+		suf = smax
 	}
 	for _, m := range ms {
-		if strings.HasSuffix(m.Owner, smax) {
-			m.Owner = m.Owner[:len(m.Owner)-len(smax)]
+		if strings.HasSuffix(m.Owner, suf) {
+			m.Owner = m.Owner[:len(m.Owner)-len(suf)]
 		}
 	}
 }
@@ -282,8 +296,8 @@ func (a releasesByName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a releasesByName) Less(i, j int) bool { return a[i].Name < a[j].Name }
 
 func listAddons(w io.Writer, names []string) {
-	ms := getMergedAddons(mustApp())
-	abbrevEmailResources(ms)
+	ms := mustGetMergedAddons(mustApp())
+	abbrevEmailResources(ms, "")
 	for i, s := range names {
 		names[i] = strings.ToLower(s)
 	}
@@ -319,6 +333,9 @@ func listApp(w io.Writer, a *App) {
 		if a.ReleasedAt != nil {
 			t = *a.ReleasedAt
 		}
+		if follow {
+			w.Write([]byte{'-', '\t'})
+		}
 		listRec(w,
 			"app",
 			abbrev(a.Owner.Email, 10),
@@ -326,8 +343,38 @@ func listApp(w io.Writer, a *App) {
 			prettyTime{t},
 			a.Name,
 		)
+		if follow {
+			for _, m := range a.attachments {
+				name := m.Name
+				if name == "" {
+					name = "?"
+				}
+				configVar := m.ConfigVar
+				if configVar == "" {
+					configVar = "?"
+				}
+				listRec(w,
+					" ",
+					m.Type,
+					abbrev(m.Owner, 10),
+					fmt.Sprintf("     ?k"),
+					prettyTime{},
+					name,
+					configVar,
+				)
+			}
+		}
 	} else {
 		fmt.Fprintln(w, a.Name)
+		if follow {
+			for _, m := range a.attachments {
+				name := m.Name
+				if name == "" {
+					name = "(" + m.Type + ")"
+				}
+				fmt.Fprintln(w, name)
+			}
+		}
 	}
 }
 
@@ -378,11 +425,19 @@ func quote(s string) string {
 
 func listAddon(w io.Writer, m *mergedAddon) {
 	if flagLong {
+		name := m.Name
+		if name == "" {
+			name = "?"
+		}
+		configVar := m.ConfigVar
+		if configVar == "" {
+			configVar = "?"
+		}
 		listRec(w,
 			m.Type,
 			abbrev(m.Owner, 10),
-			m.Name,
-			m.ConfigVar,
+			name,
+			configVar,
 		)
 	} else {
 		name := m.ConfigVar
@@ -442,6 +497,23 @@ func listRec(w io.Writer, a ...interface{}) {
 			w.Write([]byte{'\t'})
 		} else {
 			w.Write([]byte{'\n'})
+		}
+	}
+}
+
+func followAppAttachments(apps []*App, mailSuf string) {
+	ch := make(chan error, len(apps))
+	for _, a := range apps {
+		go func(name string) {
+			var err error
+			a.attachments, err = getMergedAddons(name)
+			abbrevEmailResources(a.attachments, mailSuf)
+			ch <- err
+		}(a.Name)
+	}
+	for _ = range apps {
+		if err := <-ch; err != nil {
+			log.Println(err)
 		}
 	}
 }

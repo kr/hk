@@ -19,25 +19,33 @@ func (m *mergedAddon) String() string {
 	return m.ConfigVar
 }
 
-func getMergedAddons(appname string) []*mergedAddon {
+func mustGetMergedAddons(appname string) []*mergedAddon {
+	m, err := getMergedAddons(appname)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return m
+}
+
+func getMergedAddons(appname string) ([]*mergedAddon, error) {
 	var v []*Attachment
 	var res []*Resource
 	app := new(App)
-	app.Name = mustApp()
+	app.Name = appname
 	ch := make(chan error)
 	go func() { ch <- Get(&v2{&res}, "/apps/"+app.Name+"/addons") }()
 	go func() { ch <- Get(&v2{&v}, "/apps/"+app.Name+"/attachments") }()
 	go func() { ch <- Get(app, "/apps/"+app.Name) }()
 	if err := <-ch; err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	if err := <-ch; err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	if err := <-ch; err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
-	return mergeAddons(app, res, v)
+	return mergeAddons(app, res, v), nil
 }
 
 func mergeAddons(app *App, res []*Resource, att []*Attachment) (ms []*mergedAddon) {

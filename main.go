@@ -110,6 +110,7 @@ var commands = []*Command{
 var (
 	flagApp  string
 	flagLong bool
+	follow   bool
 )
 
 func main() {

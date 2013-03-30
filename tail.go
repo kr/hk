@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	follow  bool
 	lines   int
 	source  string
 	process string
