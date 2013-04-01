@@ -105,6 +105,7 @@ var commands = []*Command{
 
 	// unlisted
 	cmdUpdate,
+	cmdCacheNames,
 }
 
 var (
@@ -119,7 +120,8 @@ func main() {
 	if s := os.Getenv("HKURL"); s != "" {
 		updater.hkURL = strings.TrimRight(s, "/") + "/"
 	}
-	defer updater.run() // doesn't run if os.Exit is called
+	defer updater.run()
+	defer ncUpdate()
 	log.SetFlags(0)
 	if hkExpired() {
 		fmt.Fprintln(os.Stderr, "This dev build of hk expired at", hkExpiration())
