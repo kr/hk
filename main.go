@@ -108,8 +108,9 @@ var commands = []*Command{
 }
 
 var (
-	flagApp  string
-	flagLong bool
+	flagApp   string // convenience var for commands that need it
+	cachedApp string
+	flagLong  bool
 )
 
 func main() {
@@ -170,15 +171,34 @@ func getCreds(u *url.URL) (user, pass string) {
 }
 
 func app() (string, error) {
-	if flagApp != "" {
-		return flagApp, nil
+	if cachedApp != "" {
+		return cachedApp, nil
 	}
 
-	b, err := exec.Command("git", "config", "remote.heroku.url").Output()
+	var mustBeGitRemote bool
+	if flagApp == "" {
+		flagApp = "heroku"
+		mustBeGitRemote = true
+	}
+
+	gitRemoteApp, err := appFromGitRemote(flagApp)
+	if err == nil {
+		flagApp = gitRemoteApp
+	} else if mustBeGitRemote {
+		return "", err
+	}
+
+	cachedApp = flagApp
+
+	return flagApp, nil
+}
+
+func appFromGitRemote(remote string) (string, error) {
+	b, err := exec.Command("git", "config", "remote."+remote+".url").Output()
 	if err != nil {
 		if isNotFound(err) {
 			wdir, _ := os.Getwd()
-			return "", fmt.Errorf("could not find git remote heroku in %s", wdir)
+			return "", fmt.Errorf("could not find git remote "+remote+" in %s", wdir)
 		}
 		return "", err
 	}
@@ -186,13 +206,10 @@ func app() (string, error) {
 	out := strings.Trim(string(b), "\r\n ")
 
 	if !strings.HasPrefix(out, gitURLPre) || !strings.HasSuffix(out, gitURLSuf) {
-		return "", fmt.Errorf("could not find app name in heroku git remote")
+		return "", fmt.Errorf("could not find app name in " + remote + " git remote")
 	}
 
-	// Memoize for later use
-	flagApp = out[len(gitURLPre) : len(out)-len(gitURLSuf)]
-
-	return flagApp, nil
+	return out[len(gitURLPre) : len(out)-len(gitURLSuf)], nil
 }
 
 func isNotFound(err error) bool {
