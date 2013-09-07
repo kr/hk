@@ -124,7 +124,7 @@ func runHelp(cmd *Command, args []string) {
 }
 
 var usageTemplate = template.Must(template.New("usage").Parse(`
-Usage: hk [command] [options] [arguments]
+Usage: hk [-a app] [command] [options] [arguments]
 
 
 Commands:

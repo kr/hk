@@ -129,6 +129,16 @@ func main() {
 	}
 
 	args := os.Args[1:]
+
+	if len(args) >= 2 && "-a" == args[0] {
+		flagApp = args[1]
+		args = args[2:]
+
+		if gitRemoteApp, err := appFromGitRemote(flagApp); err == nil {
+			flagApp = gitRemoteApp
+		}
+	}
+
 	if len(args) < 1 {
 		usage()
 	}
@@ -170,6 +180,10 @@ func getCreds(u *url.URL) (user, pass string) {
 }
 
 func app() (string, error) {
+	if flagApp != "" {
+		return flagApp, nil
+	}
+
 	if app := os.Getenv("HKAPP"); app != "" {
 		return app, nil
 	}
