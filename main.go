@@ -188,16 +188,10 @@ func app() (string, error) {
 		return app, nil
 	}
 
-	var mustBeGitRemote bool
-	if flagApp == "" {
-		flagApp = "heroku"
-		mustBeGitRemote = true
-	}
-
-	gitRemoteApp, err := appFromGitRemote(flagApp)
+	gitRemoteApp, err := appFromGitRemote("heroku")
 	if err == nil {
 		flagApp = gitRemoteApp
-	} else if mustBeGitRemote {
+	} else {
 		return "", err
 	}
 
