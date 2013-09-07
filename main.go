@@ -170,6 +170,10 @@ func getCreds(u *url.URL) (user, pass string) {
 }
 
 func app() (string, error) {
+	if app := os.Getenv("HKAPP"); app != "" {
+		return app, nil
+	}
+
 	var mustBeGitRemote bool
 	if flagApp == "" {
 		flagApp = "heroku"
