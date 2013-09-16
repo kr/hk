@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/inconshreveable/go-execpath"
 	"github.com/kr/binarydist"
 	"io"
 	"io/ioutil"
@@ -83,11 +84,11 @@ func (u *Updater) wantUpdate() bool {
 }
 
 func (u *Updater) update() error {
-	path, err := exec.LookPath("hk")
+	binpath, err := execpath.Get()
 	if err != nil {
 		return err
 	}
-	old, err := os.Open(path)
+	old, err := os.Open(binpath)
 	if err != nil {
 		return err
 	}
@@ -208,7 +209,11 @@ func writeTime(path string, t time.Time) bool {
 }
 
 func hkExpiration() time.Time {
-	fi, err := os.Stat(binPath())
+	binpath, err := execpath.Get()
+	if err != nil {
+		return time.Time{}
+	}
+	fi, err := os.Stat(binpath)
 	if err != nil {
 		return time.Time{}
 	}
