@@ -119,10 +119,6 @@ func findPlugin(name string) (path string) {
 
 // NOTE: lookupPlugin is not threadsafe for anything needing the PATH env var.
 func lookupPlugin(name string) string {
-	opath := os.Getenv("PATH")
-	defer os.Setenv("PATH", opath)
-	os.Setenv("PATH", hkPath)
-
 	path, err := exec.LookPath(hkPrefix + name)
 	if err != nil {
 		if e, ok := err.(*exec.Error); ok && e.Err == exec.ErrNotFound {
