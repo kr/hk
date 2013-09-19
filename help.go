@@ -158,8 +158,8 @@ func printUsage() {
 			log.Fatal(err)
 		}
 		for _, f := range fi {
-			if !f.IsDir() && f.Mode()&0111 != 0 {
-				plugins = append(plugins, plugin(f.Name()))
+			if !f.IsDir() && f.Mode()&0111 != 0 && strings.HasPrefix(f.Name(), hkPrefix) {
+				plugins = append(plugins, plugin(strings.TrimPrefix(f.Name(), hkPrefix)))
 			}
 		}
 	}
