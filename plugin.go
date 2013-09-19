@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	hkPath   string
 	hkPrefix string
 )
 
@@ -79,12 +78,6 @@ HKPLUGINMODE
 }
 
 func init() {
-	const defaultPluginPath = "/usr/local/lib/hk/plugin"
-	hkPath = os.Getenv("HKPATH")
-	if hkPath == "" {
-		hkPath = defaultPluginPath
-	}
-
 	hkPrefix = os.Args[0] + "-"
 }
 
