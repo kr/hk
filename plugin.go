@@ -20,10 +20,10 @@ var helpPlugins = &Command{
 	Long: `
 Plugin commands extend hk's functionality.
 
-Plugins are located in one of the directories in hk's search path,
-HKPATH, and executed for unrecognized hk commands. If a plugin named
-"default" exists, it will be run when no suitably-named plugin can
-be found. (Run 'hk help environ' for details on HKPATH.)
+Plugins are located in one of the directories in the search path,
+PATH, and executed for unrecognized hk commands. If a plugin named
+"hk-default" exists, it will be run when no suitably-named plugin
+can be found.
 
 The arguments to the plugin are the arguments to hk, not including
 "hk" itself.
@@ -123,7 +123,7 @@ func lookupPlugin(name string) string {
 	defer os.Setenv("PATH", opath)
 	os.Setenv("PATH", hkPath)
 
-	path, err := exec.LookPath(name)
+	path, err := exec.LookPath(hkPrefix + name)
 	if err != nil {
 		if e, ok := err.(*exec.Error); ok && e.Err == exec.ErrNotFound {
 			return ""

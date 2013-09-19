@@ -33,14 +33,6 @@ HKHEADER
   A NL-separated list of fields to set in each API request header.
   These override any fields set by hk if they have the same name.
 
-HKPATH
-
-  A list of directories to search for plugins. This variable takes
-  the same form as the system PATH var. If unset, the value is
-  taken to be "/usr/local/lib/hk/plugin" on Unix.
-
-  See 'hk help plugins' for information about the plugin interface.
-
 HKDUMPREQ
 
   When this is set, hk prints the wire representation of each API
@@ -153,7 +145,7 @@ Run 'hk help [command]' for details.
 
 func printUsage() {
 	var plugins []plugin
-	for _, path := range strings.Split(hkPath, ":") {
+	for _, path := range strings.Split(os.Getenv("PATH"), ":") {
 		d, err := os.Open(path)
 		if err != nil {
 			if os.IsNotExist(err) {
