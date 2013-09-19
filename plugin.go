@@ -10,7 +10,8 @@ import (
 )
 
 var (
-	hkPath string
+	hkPath   string
+	hkPrefix string
 )
 
 var helpPlugins = &Command{
@@ -84,6 +85,7 @@ func init() {
 		hkPath = defaultPluginPath
 	}
 
+	hkPrefix = os.Args[0] + "-"
 }
 
 func execPlugin(path string, args []string) error {
