@@ -5,6 +5,7 @@ import (
 	"code.google.com/p/go-netrc/netrc"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/url"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 )
 
 var (
@@ -75,7 +77,10 @@ func (c *Command) ShortExtra() string {
 // Running `hk help` will list commands in this order.
 var commands = []*Command{
 	cmdCreate,
-	cmdLs,
+	cmdApps,
+	cmdDynos,
+	cmdReleases,
+	cmdAddons,
 	cmdScale,
 	cmdRestart,
 	cmdSet,
@@ -230,4 +235,26 @@ func must(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func listRec(w io.Writer, a ...interface{}) {
+	for i, x := range a {
+		fmt.Fprint(w, x)
+		if i+1 < len(a) {
+			w.Write([]byte{'\t'})
+		} else {
+			w.Write([]byte{'\n'})
+		}
+	}
+}
+
+type prettyTime struct {
+	time.Time
+}
+
+func (s prettyTime) String() string {
+	if time.Now().Sub(s.Time) < 12*30*24*time.Hour {
+		return s.Local().Format("Jan _2 15:04")
+	}
+	return s.Local().Format("Jan _2  2006")
 }
