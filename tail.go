@@ -54,8 +54,10 @@ func runTail(cmd *Command, args []string) {
 		log.Fatal(err)
 	}
 	must(checkResp(resp))
+
 	if _, err = io.Copy(os.Stdout, resp.Body); err != nil {
 		log.Fatal(err)
 	}
+
 	resp.Body.Close()
 }
