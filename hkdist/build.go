@@ -77,7 +77,7 @@ func build(args []string) {
 		log.Fatalf("listing tags: %s", err)
 	}
 	ver := string(bytes.TrimSpace(tagb))
-	if (ver[0] != 'v' || strings.IndexFunc(ver[1:], badVersionRune) >= 0) {
+	if ver[0] != 'v' || strings.IndexFunc(ver[1:], badVersionRune) >= 0 {
 		log.Fatalf("bad tag name: %s", ver)
 	}
 
@@ -176,7 +176,7 @@ func (b *Build) build() (err error) {
 	cmd := exec.Command("go", "build", "-tags", "release", "-o", b.filename())
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	env := []string{"GOOS="+b.OS, "GOARCH="+b.Arch, "CGO_ENABLED=0"}
+	env := []string{"GOOS=" + b.OS, "GOARCH=" + b.Arch, "CGO_ENABLED=0"}
 	cmd.Env = append(env, os.Environ()...)
 	err = cmd.Run()
 	if err != nil {
