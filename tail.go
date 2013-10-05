@@ -1,7 +1,8 @@
 package main
 
 import (
-	"io"
+	"bufio"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -55,8 +56,14 @@ func runTail(cmd *Command, args []string) {
 	}
 	must(checkResp(resp))
 
-	if _, err = io.Copy(os.Stdout, resp.Body); err != nil {
-		log.Fatal(err)
+	scanner := bufio.NewScanner(resp.Body)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		if _, err = fmt.Fprintln(os.Stdout, scanner.Text()); err != nil {
+			log.Fatal(err)
+			break
+		}
 	}
 
 	resp.Body.Close()
