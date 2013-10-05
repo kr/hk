@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/kr/hk/term"
 	"io"
 	"log"
 	"net/http"
@@ -59,6 +60,10 @@ func runTail(cmd *Command, args []string) {
 	must(checkResp(resp))
 
 	writer := LineWriter(WriterAdapter{os.Stdout})
+
+	if term.IsTerminal(os.Stdout) {
+		writer = newColorizer(writer)
+	}
 
 	scanner := bufio.NewScanner(resp.Body)
 	scanner.Split(bufio.ScanLines)
