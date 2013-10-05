@@ -106,3 +106,13 @@ func newColorizer(writer LineWriter) *colorizer {
 		writer: writer,
 	}
 }
+
+func (c *colorizer) resolve(p string) string {
+	if color, ok := c.colors[p]; ok {
+		return color
+	}
+
+	color := c.colorScheme[len(c.colors)%len(c.colorScheme)]
+	c.colors[p] = color
+	return color
+}
